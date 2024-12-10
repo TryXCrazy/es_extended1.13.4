@@ -5,9 +5,7 @@
 | ✅ vms_bossmenu| 
 | ✅ vms_garagesV2| 
 
-# VMS City Hall
-#### Make these modifications if you use any multicharacter system:
-
+# VMS City Hall & VMS Boss Menu
 #### es_extended/shared/config/main.lua
 ###### Lines 38-58
 ```diff
@@ -313,5 +311,99 @@ function StartPayCheck()
             end
         end
     end)
+end
+```
+
+---
+# VMS Garages V2
+#### es_extended/server/functions.lua
+###### Lines 201-237 (`function Core.SavePlayer`)
+```diff
+function Core.SavePlayer(xPlayer, cb)
+    if not xPlayer.spawned then
+        return cb and cb()
+    end
+
++   local garageInterior, garageCoords = nil, nil;
++   if Config.VMSGaragesV2 then
++       garageInterior, garageCoords = exports['vms_garagesv2']:isInInterior(xPlayer.source);
++   end
+    
+    updateHealthAndArmorInMetadata(xPlayer)
+    local parameters <const> = {
+        json.encode(xPlayer.getAccounts(true)),
+        xPlayer.job.name,
+        xPlayer.job.grade,
+        xPlayer.group,
++       json.encode(garageInterior and garageCoords or xPlayer.getCoords(false, true)),
+        json.encode(xPlayer.getInventory(true)),
+        json.encode(xPlayer.getLoadout(true)),
+        json.encode(xPlayer.getMeta()),
+        xPlayer.identifier,
+    }
+
+    MySQL.prepare(
+        "UPDATE `users` SET `accounts` = ?, `job` = ?, `job_grade` = ?, `group` = ?, `position` = ?, `inventory` = ?, `loadout` = ?, `metadata` = ? WHERE `identifier` = ?",
+        parameters,
+        function(affectedRows)
+            if affectedRows == 1 then
+                print(('[^2INFO^7] Saved player ^5"%s^7"'):format(xPlayer.name))
+                TriggerEvent("esx:playerSaved", xPlayer.playerId, xPlayer)
+            end
+            if cb then
+                cb()
+            end
+        end
+    )
+end
+```
+
+###### Lines 241-286 (`function Core.SavePlayers`)
+```diff
+function Core.SavePlayers(cb)
+    local xPlayers <const> = ESX.Players
+    if not next(xPlayers) then
+        return
+    end
+
+    local startTime <const> = os.time()
+    local parameters = {}
+
+    for _, xPlayer in pairs(ESX.Players) do
+        updateHealthAndArmorInMetadata(xPlayer)
+
++       local garageInterior, garageCoords = nil, nil;
++       if Config.VMSGaragesV2 then
++           garageInterior, garageCoords = exports['vms_garagesv2']:isInInterior(xPlayer.source);
++       end
+
+        parameters[#parameters + 1] = {
+            json.encode(xPlayer.getAccounts(true)),
+            xPlayer.job.name,
+            xPlayer.job.grade,
+            xPlayer.group,
++           json.encode(garageInterior and garageCoords or xPlayer.getCoords(false, true)),
+            json.encode(xPlayer.getInventory(true)),
+            json.encode(xPlayer.getLoadout(true)),
+            json.encode(xPlayer.getMeta()),
+            xPlayer.identifier,
+        }
+    end
+
+    MySQL.prepare(
+        "UPDATE `users` SET `accounts` = ?, `job` = ?, `job_grade` = ?, `group` = ?, `position` = ?, `inventory` = ?, `loadout` = ?, `metadata` = ? WHERE `identifier` = ?",
+        parameters,
+        function(results)
+            if not results then
+                return
+            end
+
+            if type(cb) == "function" then
+                return cb()
+            end
+
+            print(("[^2INFO^7] Saved ^5%s^7 %s over ^5%s^7 ms"):format(#parameters, #parameters > 1 and "players" or "player", ESX.Math.Round((os.time() - startTime) / 1000000, 2)))
+        end
+    )
 end
 ```
