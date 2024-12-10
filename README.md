@@ -1,4 +1,4 @@
-# Customized ESX Framework to VMS resources
+# Customized ESX 1.11.4 Framework to VMS resources
 | Compatible Resources  |
 | ------------- |
 | ✅ vms_cityhall| 
