@@ -37,7 +37,7 @@ Config.AdminLogging = false -- Logs the usage of certain commands by those with 
 ---
 #### es_extended/server/main.lua
 ###### Lines 1-28
-```
+```diff
 SetMapName("San Andreas")
 SetGameType("ESX Legacy")
 
@@ -50,7 +50,7 @@ if Config.Multichar then
 end
 
 + if Config.VMSCityhall then
-+     newPlayer = newPlayer .. ', `ssn` = ?'
++    newPlayer = newPlayer .. ', `ssn` = ?'
 + end
 
 if Config.StartingInventoryItems then
@@ -58,11 +58,11 @@ if Config.StartingInventoryItems then
 end
 
 + if Config.Multichar or Config.Identity then
-+     loadPlayer = loadPlayer .. ", `firstname`, `lastname`, `dateofbirth`, `sex`, `height`"
++    loadPlayer = loadPlayer .. ", `firstname`, `lastname`, `dateofbirth`, `sex`, `height`"
 + end
 
 + if Config.VMSCityhall then
-+     loadPlayer = loadPlayer .. ', `ssn`'
++    loadPlayer = loadPlayer .. ', `ssn`'
 + end
 ```
 
@@ -92,9 +92,9 @@ local function createESXPlayer(identifier, playerId, data)
         data.height,
     } or {json.encode(accounts), identifier, defaultGroup}
 
-+    if Config.Multichar and Config.VMSCityhall then
-+        table.insert(parameters, exports['vms_cityhall']:GenerateSSN(data.dateofbirth, data.sex))
-+    end
++   if Config.Multichar and Config.VMSCityhall then
++       table.insert(parameters, exports['vms_cityhall']:GenerateSSN(data.dateofbirth, data.sex))
++   end
 
     if Config.StartingInventoryItems then
         table.insert(parameters, json.encode(Config.StartingInventoryItems))
@@ -106,7 +106,7 @@ local function createESXPlayer(identifier, playerId, data)
 end
 ```
 
-###### Lines 30-65
+###### Lines 269-324
 ```diff
  -- Position
 userData.coords = json.decode(result.position) or Config.DefaultSpawns[ESX.Math.Random(1,#Config.DefaultSpawns)]
@@ -119,14 +119,14 @@ userData.metadata = (result.metadata and result.metadata ~= "") and json.decode(
 
 + -- SSN
 + if Config.VMSCityhall then
-+     if result.ssn then
-+         userData.ssn = result.ssn
-+     else
-+         if result.dateofbirth ~= nil and result.sex ~= nil then
-+             userData.ssn = exports['vms_cityhall']:GenerateSSN(result.dateofbirth, result.sex)
-+             MySQL.prepare("UPDATE `users` SET `ssn` = ? WHERE `identifier` = ?", {userData.ssn, identifier})
-+         end
-+     end
++    if result.ssn then
++        userData.ssn = result.ssn
++    else
++        if result.dateofbirth ~= nil and result.sex ~= nil then
++            userData.ssn = exports['vms_cityhall']:GenerateSSN(result.dateofbirth, result.sex)
++            MySQL.prepare("UPDATE `users` SET `ssn` = ? WHERE `identifier` = ?", {userData.ssn, identifier})
++        end
++    end
 + end
 
  -- xPlayer Creation
@@ -135,12 +135,84 @@ userData.metadata = (result.metadata and result.metadata ~= "") and json.decode(
 GlobalState["playerCount"] = GlobalState["playerCount"] + 1
 ESX.Players[playerId] = xPlayer
 Core.playersByIdentifier[identifier] = xPlayer
+
+-- Identity
+if result.firstname and result.firstname ~= "" then
+    userData.firstName = result.firstname
+    userData.lastName = result.lastname
+    local name = ("%s %s"):format(result.firstname, result.lastname)
+    userData.name = name
+    xPlayer.set("firstName", result.firstname)
+    xPlayer.set("lastName", result.lastname)
+    xPlayer.setName(name)
+    if result.dateofbirth then
+        userData.dateofbirth = result.dateofbirth
+        xPlayer.set("dateofbirth", result.dateofbirth)
+    end
+    if result.sex then
+        userData.sex = result.sex
+        xPlayer.set("sex", result.sex)
+    end
+    if result.height then
+        userData.height = result.height
+        xPlayer.set("height", result.height)
+    end
++   if userData.ssn then
++       xPlayer.set("ssn", userData.ssn)
++   end
+end
 ```
 
+---
+#### es_extended/server/classes/player.lua
+###### Lines 32-76
+```diff
++ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, weight, job, loadout, name, coords, metadata, ssn)
+    ---@class xPlayer
+    local self = {}
 
+    self.accounts = accounts
+    self.coords = coords
+    self.group = group
+    self.identifier = identifier
+    self.inventory = inventory
+    self.job = job
+    self.loadout = loadout
+    self.name = name
+    self.playerId = playerId
+    self.source = playerId
+    self.variables = {}
+    self.weight = weight
+    self.maxWeight = Config.MaxWeight
+    self.metadata = metadata
++   self.ssn = ssn
+    self.lastPlaytime = self.metadata.lastPlaytime or 0
+    self.paycheckEnabled = true
+    self.admin = Core.IsPlayerAdmin(playerId)
+    if Config.Multichar then
+        local startIndex = identifier:find(":", 1)
+        if startIndex then
+            self.license = ("license%s"):format(identifier:sub(startIndex, identifier:len()))
+        end
+    else
+        self.license = ("license:%s"):format(identifier)
+    end
 
+    if type(self.metadata.jobDuty) ~= "boolean" then
+        self.metadata.jobDuty = self.job.name ~= "unemployed" and Config.DefaultJobDuty or false
+    end
+    job.onDuty = self.metadata.jobDuty
 
+    ExecuteCommand(("add_principal identifier.%s group.%s"):format(self.license, self.group))
 
+    local stateBag = Player(self.source).state
+    stateBag:set("identifier", self.identifier, false)
+    stateBag:set("license", self.license, false)
+    stateBag:set("job", self.job, true)
+    stateBag:set("group", self.group, true)
+    stateBag:set("name", self.name, true)
++   stateBag:set("ssn", self.ssn, true)
+```
 
 
 
