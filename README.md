@@ -55,9 +55,9 @@ if Config.StartingInventoryItems then
     newPlayer = newPlayer .. ", `inventory` = ?"
 end
 
-+ if Config.Multichar or Config.Identity then
-+    loadPlayer = loadPlayer .. ", `firstname`, `lastname`, `dateofbirth`, `sex`, `height`"
-+ end
+if Config.Multichar or Config.Identity then
+    loadPlayer = loadPlayer .. ", `firstname`, `lastname`, `dateofbirth`, `sex`, `height`"
+end
 
 + if Config.VMSCityhall then
 +    loadPlayer = loadPlayer .. ', `ssn`'
