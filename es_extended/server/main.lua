@@ -9,7 +9,7 @@ if Config.Multichar then
     newPlayer = newPlayer .. ", `firstname` = ?, `lastname` = ?, `dateofbirth` = ?, `sex` = ?, `height` = ?"
 end
 
-if Config.VMSCityhall then
+if Config.VMSCityhall or Config.VMSDocumentsV2 then
     newPlayer = newPlayer .. ', `ssn` = ?'
 end
 
@@ -21,7 +21,7 @@ if Config.Multichar or Config.Identity then
     loadPlayer = loadPlayer .. ", `firstname`, `lastname`, `dateofbirth`, `sex`, `height`"
 end
 
-if Config.VMSCityhall then
+if Config.VMSCityhall or Config.VMSDocumentsV2 then
     loadPlayer = loadPlayer .. ', `ssn`'
 end
 
@@ -53,6 +53,8 @@ local function createESXPlayer(identifier, playerId, data)
 
     if Config.Multichar and Config.VMSCityhall then
         table.insert(parameters, exports['vms_cityhall']:GenerateSSN(data.dateofbirth, data.sex))
+    elseif Config.Multichar and Config.VMSDocumentsV2 then
+        table.insert(parameters, exports['vms_documentsv2']:GenerateSSN(data.dateofbirth, data.sex))
     end
 
     if Config.StartingInventoryItems then
@@ -276,12 +278,12 @@ function loadESXPlayer(identifier, playerId, isNew)
     userData.metadata = (result.metadata and result.metadata ~= "") and json.decode(result.metadata) or {}
 
     -- SSN
-    if Config.VMSCityhall then
+    if Config.VMSCityhall or Config.VMSDocumentsV2 then
         if result.ssn then
             userData.ssn = result.ssn
         else
             if result.dateofbirth ~= nil and result.sex ~= nil then
-                userData.ssn = exports['vms_cityhall']:GenerateSSN(result.dateofbirth, result.sex)
+                userData.ssn = (Config.VMSCityhall and exports['vms_cityhall']:GenerateSSN(result.dateofbirth, result.sex) or Config.VMSDocumentsV2 and exports['vms_documentsv2']:GenerateSSN(result.dateofbirth, result.sex))
                 MySQL.prepare("UPDATE `users` SET `ssn` = ? WHERE `identifier` = ?", {userData.ssn, identifier})
             end
         end
