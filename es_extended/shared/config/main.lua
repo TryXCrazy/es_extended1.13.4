@@ -48,6 +48,7 @@ Config.EnableSocietyPayouts = false -- pay from the society account that the pla
 Config.AllowanceForUnemployedFromCityHallAccount = false -- Do you want unemployed players to receive paychecks from your city hall account?
 
 Config.VMSCityhall = GetResourceState("vms_cityhall") ~= "missing"
+Config.VMSDocumentsV2 = GetResourceState("vms_documentsv2") ~= "missing"
 Config.VMSBossMenu = GetResourceState("vms_bossmenu") ~= "missing"
 Config.VMSGaragesV2 = GetResourceState("vms_garagesv2") ~= "missing"
 
