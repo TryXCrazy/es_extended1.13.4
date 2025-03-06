@@ -34,6 +34,7 @@ function StartPayCheck()
                                         else
                                             xPlayer.addAccountMoney("bank", salary, "Paycheck")
                                         end
+                                        exports['vms_bossmenu']:removeMoney(xPlayer.job.name, salary)
                                     end
                                 else
                                     if Config.VMSCityhall then
