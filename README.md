@@ -3,5 +3,4 @@
 | ------------- |
 | ✅ vms_cityhall| 
 | ✅ vms_documentsV2| 
-| ✅ vms_bossmenu| 
-| ✅ vms_garagesV2|
+| ------------- |
